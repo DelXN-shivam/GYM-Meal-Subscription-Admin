@@ -1,63 +1,105 @@
 "use client";
 
-import Link from 'next/link';
-import { useState } from 'react';
-import { User, Package, Wrench } from 'lucide-react';
+import Link from "next/link";
+import { useState } from "react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { User, Package, Crown , ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function DashboardLayout({ children }) {
-  const [isHovered, setIsHovered] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [openItems, setOpenItems] = useState([]);
 
-  const handleMouseEnter = () => setIsHovered(true);
-  const handleMouseLeave = () => setIsHovered(false);
+  const toggleSidebar = () => setIsExpanded(prev => !prev);
 
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
       <aside
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className={`fixed h-full ${isHovered ? 'w-64' : 'w-16'} transition-all duration-300 bg-white border-r shadow-lg p-4`}
+        className={`fixed h-full ${isExpanded ? "w-64" : "w-16"} transition-all duration-300 bg-white border-r shadow-lg p-4 z-10 overflow-hidden`}
       >
-        <Link href="/ui/dashboard/home">
-          <h1 className={`text-lg font-bold text-green-700 mb-6 ${isHovered ? 'block' : 'hidden'}`}>
-            Admin Panel
-          </h1>
-        </Link>
+        {/* Toggle Button */}
+        <div className="flex items-center justify-between mb-6 mr-3">
+            {isExpanded ? (
+              <Link href="/ui/dashboard/home">
+                <h1 className="text-lg font-bold text-green-700">Admin Panel</h1>
+              </Link>
+            ) : (
+              <div className="w-5 h-5" /> // placeholder to prevent layout shift
+            )}
+            <button
+              onClick={toggleSidebar}
+              className="text-gray-600 hover:text-green-700 transition-colors"
+              aria-label="Toggle Sidebar"
+            >
+              {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+            </button>
+        </div>
 
-        <nav className="space-y-4">
+
+
+        {/* Accordion Menu */}
+        <Accordion
+          type="multiple"
+          className="w-full space-y-4"
+          value={openItems}
+          onValueChange={setOpenItems}
+        >
           {/* Users */}
-          <div>
-            <Link href="/ui/dashboard/users" className="flex items-center space-x-2 hover:text-green-700">
+          <AccordionItem value="users">
+            <AccordionTrigger className="flex items-center space-x-2 hover:text-green-700">
               <User className="w-5 h-5" />
-              {isHovered && <span>Get Users</span>}
-            </Link>
-          </div>
+              <span className={`${isExpanded ? "opacity-100" : "opacity-0"} transition-opacity duration-300`}>
+                Users
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="flex flex-col items-center space-y-2 pl-0 text-center">
+              <Link href="/ui/dashboard/users" className="hover:text-green-500">
+                Get Users
+              </Link>
+            </AccordionContent>
+          </AccordionItem>
 
           {/* Products */}
-          <div>
-            <Link href="/ui/dashboard/products/get" className="flex items-center space-x-2 hover:text-green-700">
+          <AccordionItem value="products">
+            <AccordionTrigger className="flex items-center space-x-2 hover:text-green-700">
               <Package className="w-5 h-5" />
-              {isHovered && <span>View Products</span>}
-            </Link>
-            <Link href="/ui/dashboard/products/add" className="flex items-center space-x-2 hover:text-green-700 mt-2 ml-6">
-              {isHovered && <span>Add Product</span>}
-            </Link>
-          </div>
-          <div>
-            <Link href="/ui/dashboard/subscription/get" className="flex items-center space-x-2 hover:text-green-700">
-              <Package className="w-5 h-5" />
-              {isHovered && <span>View Subscription</span>}
-            </Link>
-            <Link href="/ui/dashboard/subscription/add" className="flex items-center space-x-2 hover:text-green-700 mt-2 ml-6">
-              {isHovered && <span>Add Subscription</span>}
-            </Link>
-          </div>
+              <span className={`${isExpanded ? "opacity-100" : "opacity-0"} transition-opacity duration-300`}>
+                Products
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="flex flex-col items-center space-y-2 pl-0 text-center">
+              <Link href="/ui/dashboard/products/get" className="hover:text-green-500">
+                View Products
+              </Link>
+              <Link href="/ui/dashboard/products/add" className="hover:text-green-500">
+                Add Product
+              </Link>
+            </AccordionContent>
+          </AccordionItem>
 
-        </nav>
+          {/* Subscriptions */}
+          <AccordionItem value="subscription">
+            <AccordionTrigger className="flex items-center space-x-2 hover:text-green-700">
+              <Crown className="w-5 h-5" />
+              
+              <span className={`${isExpanded ? "opacity-100" : "opacity-0"} transition-opacity duration-300`}>
+                Subscription
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="flex flex-col items-center space-y-2 pl-0 text-center">
+              <Link href="/ui/dashboard/subscription/get" className="hover:text-green-500">
+                View Subscription
+              </Link>
+              <Link href="/ui/dashboard/subscription/add" className="hover:text-green-500">
+                Add Subscription
+              </Link>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </aside>
 
-      {/* Page Content */}
-      <main className={`flex-1 transition-all duration-300 ${isHovered ? 'ml-64' : 'ml-16'}`}>
+      {/* Main Content */}
+      <main className={`flex-1 transition-all duration-300 ${isExpanded ? "ml-64" : "ml-16"}`}>
         <div className="p-8 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>
