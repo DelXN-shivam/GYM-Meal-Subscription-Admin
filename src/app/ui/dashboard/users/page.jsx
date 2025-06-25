@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import UserCard from "@/components/ui/userCard";
+import { Button } from "@/components/ui/button";
+import { User as UserIcon, Loader2, ChevronLeft, ChevronRight, Users } from "lucide-react";
 
 export default function UserList() {
   const [users, setUsers] = useState([]);
@@ -34,21 +36,41 @@ export default function UserList() {
   }, [page]);
 
   return (
-    <div className="p-8 space-y-4 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">All Users</h1>
+    <div className="max-w-7xl mx-auto px-2 md:px-8 py-8 space-y-6">
+      {/* Page Heading */}
+      <div className="flex items-center gap-4 mb-4 bg-card shadow-sm rounded-xl px-6 py-4 border">
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+          <Users className="w-7 h-7 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">All Users</h1>
+          <p className="text-muted-foreground text-sm">Manage and view all registered users.</p>
+        </div>
+      </div>
 
+      {/* User List or Loading/Empty State */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {[...Array(2)].map((_, index) => (
-            <div key={index} className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="h-[500px] w-11/12 bg-gray-300 animate-pulse rounded"></div>
+            <div key={index} className="flex flex-col gap-4 bg-card rounded-xl border shadow animate-pulse p-6 min-h-[420px]">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-muted rounded-full" />
+                <div className="flex-1 h-6 bg-muted rounded" />
               </div>
+              <div className="h-4 bg-muted rounded w-1/2" />
+              <div className="h-4 bg-muted rounded w-1/3" />
+              <div className="h-4 bg-muted rounded w-2/3" />
+              <div className="flex-1" />
+              <div className="h-10 bg-muted rounded w-full" />
             </div>
           ))}
         </div>
       ) : users.length === 0 ? (
-        <p>No users found.</p>
+        <div className="flex flex-col items-center justify-center py-24 bg-card rounded-xl border shadow-sm">
+          <UserIcon className="w-12 h-12 text-muted-foreground mb-4" />
+          <p className="text-lg font-semibold text-muted-foreground mb-2">No users found.</p>
+          <p className="text-sm text-muted-foreground">There are currently no registered users in the system.</p>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -58,24 +80,30 @@ export default function UserList() {
           </div>
 
           {/* Pagination Controls */}
-          <div className="flex justify-center items-center space-x-4 mt-8">
-            <button
+          <div className="flex justify-center items-center gap-2 mt-8">
+            <Button
+              variant="outline"
+              size="sm"
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              className="px-4 py-2 bg-gray-800 text-white rounded disabled:opacity-50"
+              className="flex items-center gap-1"
+              aria-label="Previous page"
             >
-              Previous
-            </button>
-            <span className="text-lg font-medium">
+              <ChevronLeft className="w-4 h-4" /> Previous
+            </Button>
+            <span className="text-base font-medium px-2">
               Page {page} of {totalPages}
             </span>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}
-              className="px-4 py-2 bg-gray-800 text-white rounded disabled:opacity-50"
+              className="flex items-center gap-1"
+              aria-label="Next page"
             >
-              Next
-            </button>
+              Next <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
         </>
       )}
