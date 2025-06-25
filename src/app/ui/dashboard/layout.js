@@ -78,7 +78,7 @@ export default function DashboardLayout({ children }) {
             <div />
             <button
               onClick={toggleSidebar}
-              className="text-muted-foreground hover:text-sidebar-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded"
+              className="text-muted-foreground hover:text-sidebar-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded mr-1"
               aria-label="Toggle Sidebar"
             >
               {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }) {
             </AccordionTrigger>
                     <AccordionContent className="flex flex-col items-start space-y-2 pl-0 text-left">
                       {item.links.map(link => (
-                        <Link key={link.href} href={link.href} className={`w-full hover:text-sidebar-accent px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 ${isActive(link.href) ? "bg-sidebar-accent/40 font-semibold" : ""}`}>{link.label}</Link>
+                        <Link key={link.href} href={link.href} className={`w-full hover:text-slate-400 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 `}>{link.label}</Link>
                       ))}
             </AccordionContent>
           </AccordionItem>
