@@ -17,7 +17,6 @@ export default function Products() {
       const res = await fetch(`/api/product/getProducts`, {
         credentials: "include",
       });
-
       if (!res.ok) throw new Error("Failed to fetch products");
 
       const data = await res.json();
@@ -43,10 +42,9 @@ export default function Products() {
         method: "DELETE",
         credentials: "include",
       });
-
       if (!res.ok) throw new Error("Failed to delete product");
 
-      setProducts((prevProducts) => prevProducts.filter((product) => product._id !== id));
+      setProducts((prev) => prev.filter((product) => product._id !== id));
       alert("Product deleted successfully");
     } catch (error) {
       console.error(error);
@@ -59,8 +57,8 @@ export default function Products() {
   }, []);
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header Section */}
+    <div className="min-h-screen bg-white text-black dark:bg-black text-white p-6 space-y-6">
+      {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
@@ -68,7 +66,7 @@ export default function Products() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-zinc-400">
               Manage your product catalog and inventory
             </p>
           </div>
@@ -79,49 +77,53 @@ export default function Products() {
             size="sm"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-black dark:text-white dark:hover:bg-zinc-800"
           >
-            <RefreshCcw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Link href="/ui/dashboard/products/add">
-            <Button size="sm" className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex hover:no-underline items-center gap-2 bg-white text-black dark:bg-black dark:text-white dark:hover:bg-zinc-800"
+            >
+              <Plus className="w-4 h-4 text-black" />
               Add Product
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* Products Grid */}
+      {/* Products */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, index) => (
-            <div key={index} className="space-y-4">
-              <div className="aspect-square w-full bg-muted animate-pulse rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="space-y-4">
+              <div className="aspect-square w-full bg-zinc-800 animate-pulse rounded-lg" />
               <div className="space-y-2">
-                <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-                <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-3/4 bg-zinc-700 animate-pulse rounded" />
+                <div className="h-4 w-1/2 bg-zinc-700 animate-pulse rounded" />
               </div>
             </div>
           ))}
         </div>
       ) : products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[400px] border rounded-lg bg-card text-card-foreground">
+        <div className="flex flex-col items-center justify-center min-h-[400px] border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-300">
           <Package className="w-12 h-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">No products found</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Get started by adding your first product
           </p>
           <Link href="/ui/dashboard/products/add">
-            <Button size="sm" className="flex items-center gap-2">
+            <Button size="sm" className="flex items-center gap-2 bg-primary text-white">
               <Plus className="w-4 h-4" />
               Add Product
             </Button>
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
             <ProductCard key={product._id} product={product} onDelete={handleDelete} />
           ))}

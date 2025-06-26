@@ -22,6 +22,13 @@ export default function DashboardLayout({ children }) {
     }
   }, [darkMode]);
 
+  // Close accordions when sidebar collapses
+  useEffect(() => {
+    if (!isExpanded) {
+      setOpenItems([]);
+    }
+  }, [isExpanded]);
+
   const toggleSidebar = () => setIsExpanded((prev) => !prev);
   const toggleMobileSidebar = () => setMobileSidebarOpen((prev) => !prev);
 
@@ -59,208 +66,257 @@ export default function DashboardLayout({ children }) {
   ];
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar (desktop & mobile) */}
-      <aside
-        className={`fixed z-30 h-full bg-sidebar/95 border-r border-sidebar-border shadow-lg transition-all duration-300 p-4 flex flex-col justify-between
-          ${isExpanded ? "w-64" : "w-16"}
-          hidden md:flex
-        `}
-      >
-        <div>
-          {/* Logo/Branding */}
-          <div className="flex items-center gap-2 mb-8 px-1">
-            <img src="/globe.svg" alt="Logo" className="w-8 h-8" />
-            {isExpanded && <span className="text-xl font-bold text-sidebar-primary tracking-tight">GYM Meal Admin</span>}
-          </div>
-        {/* Toggle Button */}
-          <div className="flex items-center justify-between mb-6">
-            <div />
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* Topbar - Full width */}
+      <header className="w-full h-16 bg-[#6495ED]
+                    dark:from-gray-900 dark:bg-black
+                    border-b border-border flex items-center justify-between px-6 
+                    shadow-sm sticky top-0 z-20">
+        {/* Logo on left */}
+        <div className="flex items-center gap-2">
+          <img src="/globe.svg" alt="Logo" className="w-8 h-8" />
+          <span className="text-xl font-bold text-black tracking-tight hidden dark:text-white md:inline">
+            GYM-Meal-Admin
+          </span>
+        </div>
+
+        {/* Search in center */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 w-64">
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full px-3 py-2 rounded-md border border-border bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+          />
+        </div>
+
+        {/* Actions on right */}
+        <div className="flex items-center gap-4">
+          {/* Dark mode toggle */}
+          <button
+            className="p-2 rounded-full  hover:bg-accent transition focus:outline-none focus:ring-2 focus:ring-primary/40 "
+            onClick={() => setDarkMode((d) => !d)}
+            aria-label="Toggle dark mode"
+          >
+            {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-muted-foreground" />}
+          </button>
+          
+          {/* Notification dropdown */}
+          <div className="relative">
             <button
-              onClick={toggleSidebar}
-              className="text-muted-foreground hover:text-sidebar-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded mr-1"
-              aria-label="Toggle Sidebar"
+              className="relative p-2 rounded-full hover:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 dark:hover:bg-zinc-800  transition "
+              onClick={() => setNotifOpen((o) => !o)}
+              aria-label="Notifications"
             >
-              {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+              <Bell className="w-5 h-5 text-muted-foreground" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
             </button>
-        </div>
-          {/* Navigation */}
-          <nav className="flex flex-col gap-2">
-            {navItems.map((item, idx) => (
-              <div key={item.value}>
-                <Accordion type="multiple" className="w-full" value={openItems} onValueChange={setOpenItems}>
-                  <AccordionItem value={item.value}>
-                    <AccordionTrigger className={`flex items-center space-x-2 group hover:bg-sidebar-accent/30 rounded px-2 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 ${isExpanded ? '' : 'justify-center'}`}
-                      onMouseEnter={() => !isExpanded && setActiveSection(item.value)}
-                      onMouseLeave={() => !isExpanded && setActiveSection("")}
-                    >
-                      <span className="relative">
-                        {item.icon}
-                        {/* Tooltip for collapsed sidebar */}
-                        {!isExpanded && activeSection === item.value && (
-                          <span className="absolute left-10 top-1/2 -translate-y-1/2 bg-sidebar-foreground text-sidebar bg-opacity-90 px-2 py-1 rounded shadow text-xs whitespace-nowrap z-50 animate-fade-in">
-                            {item.label}
-              </span>
-                        )}
-              </span>
-                      <span className={`${isExpanded ? "opacity-100" : "opacity-0 w-0"} transition-all duration-300`}>{item.label}</span>
-            </AccordionTrigger>
-                    <AccordionContent className="flex flex-col items-start space-y-2 pl-0 text-left">
-                      {item.links.map(link => (
-                        <Link key={link.href} href={link.href} className={`w-full hover:text-slate-400 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 `}>{link.label}</Link>
-                      ))}
-            </AccordionContent>
-          </AccordionItem>
-                </Accordion>
-                {/* Divider after each section except last */}
-                {idx < navItems.length - 1 && <div className="my-2 border-t border-sidebar-border opacity-60" />}
+            {notifOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-border rounded-md shadow-lg z-30 animate-fade-in dark:bg-zinc-800">
+                <div className="p-4 text-sm text-muted-foreground border-b">Notifications</div>
+                <ul className="divide-y divide-border">
+                  <li className="p-3 hover:bg-muted/50 transition">No new notifications</li>
+                </ul>
               </div>
-            ))}
-          </nav>
-        </div>
-        {/* Sidebar bottom: user profile */}
-        <div className="flex flex-col items-center gap-2 mt-8 mb-2">
-          <div className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-sidebar-accent/30 transition cursor-pointer">
-            <img src="/window.svg" alt="User" className="w-8 h-8 rounded-full border border-sidebar-border" />
-            {isExpanded && <div className="flex flex-col"><span className="font-semibold text-sm">Admin</span><span className="text-xs text-muted-foreground">Superuser</span></div>}
+            )}
           </div>
-          {isExpanded && <button className="w-full mt-2 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition text-xs font-medium">Logout</button>}
+          
+          {/* Profile dropdown */}
+          <div className="relative">
+            <button
+              className="flex items-center gap-2 p-1 rounded-full  hover:bg-accent transition focus:outline-none "
+              onClick={() => setProfileOpen((o) => !o)}
+              aria-label="Profile"
+            >
+              <div className="w-8 h-8 rounded-full bg-muted" />
+              <span className="font-medium text-sm text-black hidden sm:block dark:text-white">Admin</span>
+            </button>
+            {profileOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white border border-border rounded-md shadow-lg z-30 animate-fade-in">
+                <div className="p-4 text-sm text-muted-foreground">Profile & Settings (coming soon)</div>
+              </div>
+            )}
+          </div>
         </div>
-      </aside>
-      {/* Mobile Sidebar */}
-      <div className="md:hidden">
-        <button
-          className="fixed top-4 left-4 z-40 bg-sidebar p-2 rounded-md shadow-md border border-sidebar-border"
-          onClick={toggleMobileSidebar}
-        >
-          <Menu size={24} />
-        </button>
-        {mobileSidebarOpen && (
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={toggleMobileSidebar} />
-        )}
+      </header>
+
+      {/* Main content area with sidebar */}
+      <div className="flex flex-1">
+        {/* Sidebar (desktop & mobile) */}
         <aside
-          className={`fixed top-0 left-0 z-50 h-full bg-sidebar/95 border-r border-sidebar-border shadow-lg transition-all duration-300 p-4 w-64 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+          className={`fixed z-30 h-[calc(100vh-4rem)] mt-1 bg-white border-sidebar-border shadow-lg transition-all duration-300 p-4 flex flex-col dark:bg-black
+            ${isExpanded ? "w-64" : "w-16"}
+            hidden md:flex
+          `}
         >
-          <div className="flex items-center gap-2 mb-8 px-1">
-            <img src="/globe.svg" alt="Logo" className="w-8 h-8" />
-            <span className="text-xl font-bold text-sidebar-primary tracking-tight">GYM Meal Admin</span>
+          {/* Rest of your sidebar content remains the same */}
+          <div>
+            {/* Toggle Button */}
+            <div className="flex items-center justify-between mb-6">
+              <div />
+              <button
+                onClick={toggleSidebar}
+                className="text-muted-foreground hover:text-sidebar-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 rounded mr-1"
+                aria-label="Toggle Sidebar"
+              >
+                {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+              </button>
+            </div>
+            
+            {/* Navigation */}
+            <nav className="flex flex-col gap-2">
+              {navItems.map((item, idx) => (
+                <div key={item.value}>
+                  {isExpanded ? (
+                    // Expanded view with accordion
+                    <Accordion type="multiple" className="w-full" value={openItems} onValueChange={setOpenItems}>
+                      <AccordionItem value={item.value}>
+                        <AccordionTrigger className="flex items-center space-x-2 group hover:bg-sidebar-accent/30 rounded px-2 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40">
+                          {item.icon}
+                          <span className="transition-all duration-300">{item.label}</span>
+                        </AccordionTrigger>
+                        <AccordionContent className="flex flex-col items-start space-y-2 pl-0 text-left">
+                          {item.links.map(link => (
+                            <Link 
+                              key={link.href} 
+                              href={link.href} 
+                              className="w-full hover:text-slate-400 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            >
+                              {link.label}
+                            </Link>
+                          ))}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  ) : (
+                    // Collapsed view with tooltip
+                    <div className="relative group">
+                      <button
+                        className="flex items-center justify-center w-full hover:bg-sidebar-accent/30 rounded px-2 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        onMouseEnter={() => setActiveSection(item.value)}
+                        onMouseLeave={() => setActiveSection("")}
+                      >
+                        {item.icon}
+                      </button>
+                      {/* Tooltip for collapsed sidebar */}
+                      {activeSection === item.value && (
+                        <div className="absolute left-12 top-0 bg-sidebar-foreground text-sidebar px-3 py-2 rounded shadow-lg text-sm whitespace-nowrap z-50 animate-fade-in">
+                          <div className="font-medium">{item.label}</div>
+                          <div className="mt-1 space-y-1">
+                            {item.links.map(link => (
+                              <Link 
+                                key={link.href} 
+                                href={link.href}
+                                className="block text-xs hover:text-sidebar-accent transition-colors"
+                              >
+                                {link.label}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Divider after each section except last */}
+                  {idx < navItems.length - 1 && <div className="my-2 border-t border-sidebar-border opacity-60" />}
+                </div>
+              ))}
+            </nav>
           </div>
-          <div className="flex items-center justify-between mb-6">
-            <div />
-            <button
-              onClick={toggleMobileSidebar}
-              className="text-muted-foreground hover:text-sidebar-primary transition-colors"
-              aria-label="Close Sidebar"
-            >
-              <ChevronLeft size={20} />
-            </button>
-          </div>
-          {/* Navigation (reuse) */}
-          <nav className="flex flex-col gap-2">
-            {navItems.map((item, idx) => (
-              <div key={item.value}>
-                <Accordion type="multiple" className="w-full" value={openItems} onValueChange={setOpenItems}>
-                  <AccordionItem value={item.value}>
-                    <AccordionTrigger className={`flex items-center space-x-2 group hover:bg-sidebar-accent/30 rounded px-2 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40`}>
-                      {item.icon}
-                      <span>{item.label}</span>
-            </AccordionTrigger>
-                    <AccordionContent className="flex flex-col items-start space-y-2 pl-0 text-left">
-                      {item.links.map(link => (
-                        <Link key={link.href} href={link.href} className={`w-full hover:text-sidebar-accent px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 ${isActive(link.href) ? "bg-sidebar-accent/40 font-semibold" : ""}`}>{link.label}</Link>
-                      ))}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-                {idx < navItems.length - 1 && <div className="my-2 border-t border-sidebar-border opacity-60" />}
+          
+          {isExpanded && (
+            <div className="flex flex-col items-center gap-2 mt-8 mb-2">
+              <div className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-sidebar-accent/30 transition cursor-pointer">
+                <img src="/window.svg" alt="User" className="w-8 h-8 rounded-full border border-sidebar-border" />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-sm">Admin</span>
+                  <span className="text-xs text-muted-foreground">Superuser</span>
+                </div>
               </div>
-            ))}
-          </nav>
-          {/* Sidebar bottom: user profile */}
-          <div className="flex flex-col items-center gap-2 mt-8 mb-2">
-            <div className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-sidebar-accent/30 transition cursor-pointer">
-              <img src="/window.svg" alt="User" className="w-8 h-8 rounded-full border border-sidebar-border" />
-              <div className="flex flex-col"><span className="font-semibold text-sm">Admin</span><span className="text-xs text-muted-foreground">Superuser</span></div>
-            </div>
-            <button className="w-full mt-2 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition text-xs font-medium">Logout</button>
-          </div>
-      </aside>
-      </div>
-      {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isExpanded ? "md:ml-64" : "md:ml-16"}`}>
-        {/* Topbar */}
-        <header className="w-full h-16 bg-white/95 border-b border-border flex items-center justify-between px-6 shadow-sm sticky top-0 z-20">
-          {/* Search and actions */}
-          <div className="flex items-center gap-4 w-full">
-            <div className="flex-1 max-w-xs transition-all duration-300 focus-within:max-w-md">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full px-3 py-2 rounded-md border border-border bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-              />
-            </div>
-            {/* Dark mode toggle */}
-            <button
-              className="p-2 rounded-full hover:bg-accent transition focus:outline-none focus:ring-2 focus:ring-primary/40"
-              onClick={() => setDarkMode((d) => !d)}
-              aria-label="Toggle dark mode"
-            >
-              {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-muted-foreground" />}
-            </button>
-            {/* Notification dropdown */}
-            <div className="relative">
-              <button
-                className="relative p-2 rounded-full hover:bg-accent transition focus:outline-none focus:ring-2 focus:ring-primary/40"
-                onClick={() => setNotifOpen((o) => !o)}
-                aria-label="Notifications"
-              >
-                <Bell className="w-5 h-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
+              <button className="w-full mt-2 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition text-xs font-medium">
+                Logout
               </button>
-              {notifOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white border border-border rounded-md shadow-lg z-30 animate-fade-in">
-                  <div className="p-4 text-sm text-muted-foreground border-b">Notifications</div>
-                  <ul className="divide-y divide-border">
-                    <li className="p-3 hover:bg-muted/50 transition">No new notifications</li>
-                  </ul>
-                </div>
-              )}
             </div>
-            {/* Profile dropdown */}
-            <div className="relative">
+          )}
+        </aside>
+
+        {/* Mobile Sidebar */}
+        <div className="md:hidden">
+          <button
+            className="fixed top-4 left-4 z-40 bg-sidebar p-2 rounded-md shadow-md border border-sidebar-border"
+            onClick={toggleMobileSidebar}
+          >
+            <Menu size={24} />
+          </button>
+          {mobileSidebarOpen && (
+            <div className="fixed inset-0 z-50 bg-black/40" onClick={toggleMobileSidebar} />
+          )}
+          <aside
+            className={`fixed top-0 left-0 z-50 h-full bg-sidebar/95 border-r border-sidebar-border shadow-lg transition-all duration-300 p-4 w-64 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+          >
+            <div className="flex items-center gap-2 mb-8 px-1">
+              <img src="/globe.svg" alt="Logo" className="w-8 h-8" />
+              <span className="text-xl font-bold text-sidebar-primary dark:text-white tracking-tight">GYM Meal Admin</span>
+            </div>
+            <div className="flex items-center justify-between mb-6">
+              <div />
               <button
-                className="flex items-center gap-2 p-1 rounded-full hover:bg-accent transition focus:outline-none focus:ring-2 focus:ring-primary/40"
-                onClick={() => setProfileOpen((o) => !o)}
-                aria-label="Profile"
+                onClick={toggleMobileSidebar}
+                className="text-muted-foreground hover:text-sidebar-primary transition-colors"
+                aria-label="Close Sidebar"
               >
-                <div className="w-8 h-8 rounded-full bg-muted" />
-                <span className="font-medium text-sm text-muted-foreground hidden sm:block">Admin</span>
+                <ChevronLeft size={20} />
               </button>
-              {/* Dropdown (animated) */}
-              {profileOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white border border-border rounded-md shadow-lg z-30 animate-fade-in">
-                  <div className="p-4 text-sm text-muted-foreground">Profile & Settings (coming soon)</div>
-                </div>
-              )}
             </div>
-          </div>
-        </header>
-      {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto overflow-y-auto bg-gradient-to-br from-background to-muted/60 rounded-lg mt-4 shadow-sm relative">
-          {/* SVG background pattern */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-10" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-          <div className="relative z-10">
-            {children}
-          </div>
-      </main>
+            {/* Navigation (reuse) */}
+            <nav className="flex flex-col gap-2">
+              {navItems.map((item, idx) => (
+                <div key={item.value}>
+                  <Accordion type="multiple" className="w-full" value={openItems} onValueChange={setOpenItems}>
+                    <AccordionItem value={item.value}>
+                      <AccordionTrigger className="flex items-center space-x-2 group hover:bg-sidebar-accent/30 rounded px-2 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40">
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </AccordionTrigger>
+                      <AccordionContent className="flex flex-col items-start space-y-2 pl-0 text-left">
+                        {item.links.map(link => (
+                          <Link key={link.href} href={link.href} className={`w-full hover:text-sidebar-accent px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 ${isActive(link.href) ? "bg-sidebar-accent/40 font-semibold" : ""}`}>{link.label}</Link>
+                        ))}
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                  {idx < navItems.length - 1 && <div className="my-2 border-t border-sidebar-border opacity-60" />}
+                </div>
+              ))}
+            </nav>
+            {/* Sidebar bottom: user profile */}
+            <div className="flex flex-col items-center gap-2 mt-8 mb-2">
+              <div className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-sidebar-accent/30 transition cursor-pointer">
+                <img src="/window.svg" alt="User" className="w-8 h-8 rounded-full border border-sidebar-border" />
+                <div className="flex flex-col"><span className="font-semibold text-sm">Admin</span><span className="text-xs text-muted-foreground">Superuser</span></div>
+              </div>
+              <button className="w-full mt-2 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition text-xs font-medium">Logout</button>
+            </div>
+          </aside>
+        </div>
+
+        {/* Main Content Area */}
+        <div className={`flex-1 flex flex-col min-h-[calc(100vh-4rem)] transition-all duration-300 ${isExpanded ? "md:ml-64" : "md:ml-16"}`}>
+          {/* Main Content */}
+          <main className="flex-1 justify-between p-4 md:p-8 max-w-7xl w-full mx-auto overflow-y-auto bg-gradient-to-br from-background to-muted/60 rounded-lg mt-4 shadow-sm relative">
+            {/* SVG background pattern */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-10" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
+            <div className="relative z-10">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
-  );
-}
+)}

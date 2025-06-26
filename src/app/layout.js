@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 
@@ -8,6 +8,7 @@ export default function RootLayout({ children }) {
       <body
         className={``}
       >
+        <Toaster position="top-center" reverseOrder={false} />
         {children}
       </body>
     </html>

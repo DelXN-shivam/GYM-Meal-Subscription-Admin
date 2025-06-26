@@ -5,13 +5,11 @@ import connectDB from '@/lib/mongoose.js';
 import Product from '@/models/Product.js';
 import { authenticate } from '@/lib/auth';
 
-// Define allowed values for validation
 const ALLOWED_DIETARY_PREFERENCES = ['veg', 'non-veg', 'vegan'];
 const ALLOWED_MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
 
 export async function POST(req) {
     try {
-        // Authentication check
         const user = authenticate(req);
         if (!user) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -19,18 +17,14 @@ export async function POST(req) {
 
         await connectDB();
 
-        // Parse and validate input data
         const { name, type, subCategory, quantity, calories, price, dietaryPreference, allergies } = await req.json();
 
-        // Required field validation
         if (!name || !calories) {
             return NextResponse.json(
                 { message: "Missing required fields: name and calories." },
                 { status: 400 }
             );
         }
-
-        // Validate dietaryPreference is an array with allowed values
         const validatedDietary = Array.isArray(dietaryPreference)
             ? dietaryPreference.filter(item => ALLOWED_DIETARY_PREFERENCES.includes(item))
             : [];
@@ -42,12 +36,10 @@ export async function POST(req) {
             );
         }
 
-        // Validate meal types if provided
         const validatedTypes = Array.isArray(type)
             ? type.filter(item => ALLOWED_MEAL_TYPES.includes(item))
             : [];
 
-        // Check for existing product
         const existingProduct = await Product.findOne({
             name,
             subCategory: subCategory || null
@@ -63,7 +55,6 @@ export async function POST(req) {
             );
         }
 
-        // Create new product
         const newProduct = new Product({
             name,
             type: validatedTypes.length > 0 ? validatedTypes : undefined,
@@ -75,7 +66,6 @@ export async function POST(req) {
             allergies: Array.isArray(allergies) ? allergies : []
         });
 
-        // Save product
         const savedProduct = await newProduct.save();
 
         return NextResponse.json(
@@ -89,7 +79,6 @@ export async function POST(req) {
     } catch (error) {
         console.error("Error adding product:", error);
         
-        // More specific error messages
         let errorMessage = "Internal server error.";
         if (error.name === 'ValidationError') {
             errorMessage = Object.values(error.errors).map(err => err.message).join(', ');

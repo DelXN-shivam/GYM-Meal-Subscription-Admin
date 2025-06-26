@@ -8,13 +8,13 @@ export default function SampleSubscriptionCard({ subscription }) {
   return (
     <Card className="max-w-md w-full shadow-md hover:shadow-xl transition duration-300 rounded-lg border">
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">
+        <CardTitle className="text-xl font-semibold dark:font-bold dark:text-blue-600">
           {subscription.planDuration} Plan
         </CardTitle>
-        <p className="text-gray-500">{subscription.mealsPerDay} Meals/Day</p>
+        <p className="text-gray-500 dark:text-yellow-300">{subscription.mealsPerDay} Meals/Day</p>
       </CardHeader>
 
-      <CardContent className="space-y-2 text-gray-800 text-sm">
+      <CardContent className="space-y-2 text-gray-800 text-sm dark:text-white">
         <p>
           <span className="font-medium">Price:</span> ₹{subscription.price}
         </p>
