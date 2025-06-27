@@ -5,24 +5,45 @@ import ProductCard from "@/components/ui/productCard";
 import { Package, Plus, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [authorised , setAuthorised] = useState(null);
 
+  const router = useRouter()
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/product/getProducts`, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to fetch products");
 
+      if(res.status == 401){
+        toast.error("You are not logged in , Redirecting to LogIn ..." , {
+          duration : 4000
+        })
+        setTimeout(() => {
+          router.push("/ui/admin/login")
+          setAuthorised(false);
+        } , 4000)
+        
+        return ;
+      }
+
+      if (!res.ok){
+        setAuthorised(false);
+        throw new Error("Failed to fetch products");  
+        }
       const data = await res.json();
       setProducts(data.products);
+      setAuthorised(true);
     } catch (error) {
       console.error(error);
+      setAuthorised(false);
     } finally {
       setLoading(false);
     }
@@ -55,6 +76,22 @@ export default function Products() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+  if (authorised === false) {
+    const timeout = setTimeout(() => {
+      router.push("/ui/admin/login");
+    }, 4000);
+
+    return () => clearTimeout(timeout); // cleanup
+  }
+}, [authorised]);
+
+if (authorised === null) {
+  return 
+}
+
+if (authorised === false) return null;
 
   return (
     <div className="min-h-screen bg-white text-black dark:bg-black text-white p-6 space-y-6">

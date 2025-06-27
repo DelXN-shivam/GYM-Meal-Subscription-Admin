@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import SampleSubscriptionCard from "@/components/ui/SampleSubscriptionCard";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function SampleSubscriptionList() {
+  
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchSubscriptions = async () => {
     try {
@@ -13,6 +17,16 @@ export default function SampleSubscriptionList() {
         method: "GET",
         credentials: "include",
       });
+      if(res.status == 401){
+        toast.error("You are not logged in , Redirecting to LogIn ..." , {
+          duration : 4000
+        })
+
+        setTimeout(() => {
+          router.push("/ui/admin/login")
+        } , 4000)
+        return ;
+      }
 
       if (!res.ok) throw new Error("Failed to fetch subscriptions");
 

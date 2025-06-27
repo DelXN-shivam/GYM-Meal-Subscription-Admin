@@ -1,6 +1,5 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Package,
@@ -9,17 +8,24 @@ import {
   Users,
   AlertCircle,
   CheckCircle,
+  X,
+  ChevronDown,
 } from "lucide-react";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function ProductAdd() {
   const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState(null);
+  const [authStatus, setAuthStatus] = useState("checking");
   const [form, setForm] = useState({
     name: "",
     type: [],
-    subCategory: "",
+    measurement: "",
     quantity: "",
     calories: "",
     price: "",
@@ -30,48 +36,139 @@ export default function ProductAdd() {
   const allergyOptions = ["dairy", "nuts", "eggs", "gluten"];
   const typeOptions = ["breakfast", "lunch", "dinner"];
   const dietaryOptions = ["veg", "non-veg", "vegan"];
+  const measurementOptions = ["plate", "bowl", "piece", "pieces", "serving", "slice", "cup"];
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/admin/check-auth", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (res.status === 401) {
+          setAuthStatus("unauthorized");
+          toast.error("You are not authorized. Redirecting to login...");
+          setTimeout(() => router.push("/ui/admin/login"), 3000);
+          return;
+        }
+
+        const data = await res.json();
+        if (data.authorized) {
+          setAuthStatus("authorized");
+          setAuthorized(true);
+        } else {
+          setAuthStatus("unauthorized");
+          throw new Error("Unauthorized");
+        }
+      } catch (err) {
+        console.error("Authorization failed:", err);
+        setAuthStatus("unauthorized");
+        router.push("/ui/admin/login");
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
+  const validateForm = () => {
+    const errors = {};
+    if (!form.name.trim()) {
+      errors.name = "Product name is required";
+    }
+    if (form.type.length === 0) {
+      errors.type = "Please select at least one type";
+    }
+    if (!form.measurement) {
+      errors.measurement = "Measurement is required";
+    }
+    if (!form.price || parseFloat(form.price) <= 0) {
+      errors.price = "Price must be greater than 0";
+    }
+    if (!form.calories || parseInt(form.calories) <= 0) {
+      errors.calories = "Calories must be greater than 0";
+    }
+    return errors;
+  };
 
   const addProduct = async (e) => {
     e.preventDefault();
+
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setError(Object.values(errors)[0]);
+      toast.error(Object.values(errors)[0]);
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
       setSuccess(false);
 
+      console.log("Submitting form data:", JSON.stringify(form, null, 2));
+      console.log("Allergies specifically:", form.allergies);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const res = await fetch("/api/product/add", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          // Uncomment and add token if required
+          // "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
         credentials: "include",
         body: JSON.stringify(form),
+        signal: controller.signal,
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        setError(errData.message || "Failed to add product");
+      clearTimeout(timeoutId);
+
+      if (res.status === 401) {
+        toast.error("You are not authorized. Redirecting to login...", {
+          duration: 4000,
+        });
+        setTimeout(() => router.push("/ui/admin/login"), 3000);
         return;
       }
 
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(text || "Invalid response from server");
+      }
+
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || `HTTP error! Status: ${res.status}`);
+      }
+
       setProduct(data.product);
       setSuccess(true);
+      toast.success("Product added successfully!");
 
-      // Reset form
-      setTimeout(() => {
-        setForm({
-          name: "",
-          type: [],
-          subCategory: "",
-          quantity: "",
-          calories: "",
-          price: "",
-          dietaryPreference: [],
-          allergies: [],
-        });
-        setSuccess(false);
-      }, 3000);
+      setForm({
+        name: "",
+        type: [],
+        measurement: "",
+        quantity: "",
+        calories: "",
+        price: "",
+        dietaryPreference: [],
+        allergies: [],
+      });
     } catch (err) {
-      console.error(err);
-      setError("Server Error - Please try again");
+      console.error("Submission error:", err);
+      if (err.name === "AbortError") {
+        setError("Request timed out. Please try again.");
+        toast.error("Request timed out. Please try again.");
+      } else {
+        setError(err.message);
+        toast.error(err.message || "Server Error - Please try again");
+      }
     } finally {
       setLoading(false);
     }
@@ -79,16 +176,47 @@ export default function ProductAdd() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`handleChange - ${name}:`, value); // Debug log
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const toggleArrayValue = (key, value) => {
-    setForm((prev) =>
-      prev[key].includes(value)
-        ? { ...prev, [key]: prev[key].filter((v) => v !== value) }
-        : { ...prev, [key]: [...prev[key], value] }
-    );
+    console.log(`Toggling ${key}: ${value}`);
+    setForm((prev) => {
+      const currentArray = prev[key] || [];
+      const newArray = currentArray.includes(value)
+        ? currentArray.filter((v) => v !== value)
+        : [...currentArray, value];
+      console.log(`Updated ${key}:`, newArray);
+      return { ...prev, [key]: newArray };
+    });
   };
+
+  const handleAllergyChange = (newAllergies) => {
+    console.log("handleAllergyChange - New allergies:", newAllergies);
+    setForm((prev) => ({ ...prev, allergies: newAllergies }));
+  };
+
+  if (authStatus === "checking") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="p-4 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+          <p>Checking authorization...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (authStatus === "unauthorized") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="p-4 text-center">
+          <p>Redirecting to login page...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-white dark:from-black dark:to-zinc-900 py-12 px-4 text-zinc-800 dark:text-zinc-100 transition-all">
@@ -125,7 +253,7 @@ export default function ProductAdd() {
             </div>
           )}
 
-          <form onSubmit={addProduct} className="p-8 space-y-8">
+          <form onSubmit={addProduct} className="p-8 space-y-8" style={{ pointerEvents: "auto" }}>
             {/* === Basic Info === */}
             <Section icon={<Package />} title="Basic Information">
               <TextInput
@@ -136,17 +264,19 @@ export default function ProductAdd() {
                 required
               />
               <MultiSelectGrid
-                label="Meal Type"
+                label="Meal Type *"
                 options={typeOptions}
                 selected={form.type}
                 onChange={(val) => toggleArrayValue("type", val)}
+                borderColor="blue"
               />
-              <TextInput
-                label="Sub Category"
-                name="subCategory"
-                value={form.subCategory}
+              <SelectInput
+                label="Measurement *"
+                name="measurement"
+                value={form.measurement}
                 onChange={handleChange}
-                placeholder="e.g., Dessert"
+                options={measurementOptions}
+                required
               />
             </Section>
 
@@ -170,12 +300,13 @@ export default function ProductAdd() {
                 />
               </div>
               <TextInput
-                label="Price"
+                label="Price *"
                 name="price"
                 type="number"
                 value={form.price}
                 onChange={handleChange}
                 icon={<DollarSign className="text-zinc-400 w-4 h-4" />}
+                required
               />
             </Section>
 
@@ -188,13 +319,14 @@ export default function ProductAdd() {
                 onChange={(val) => toggleArrayValue("dietaryPreference", val)}
                 customLabels={{ veg: "Vegetarian", "non-veg": "Non-Veg", vegan: "Vegan" }}
                 customIcons={{ veg: "🥬", "non-veg": "🍖", vegan: "🌱" }}
+                borderColor="blue"
               />
               <MultiSelectGrid
-                label="Common Allergens"
+                label="Dietary Preference"
                 options={allergyOptions}
                 selected={form.allergies}
                 onChange={(val) => toggleArrayValue("allergies", val)}
-                borderColor="orange"
+                borderColor="blue"
               />
             </Section>
 
@@ -261,33 +393,186 @@ function TextInput({ label, name, value, onChange, placeholder = "", required = 
   );
 }
 
+function SelectInput({ label, name, value, onChange, options, required = false }) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        required={required}
+        className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white/50 dark:bg-zinc-800 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:outline-none transition"
+      >
+        <option value="" disabled>
+          Select a measurement
+        </option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option.charAt(0).toUpperCase() + option.slice(1)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function EnhancedMultiSelectDropdown({ label, value = [], onChange, options, placeholder = "Select options" }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleOption = (option) => {
+    const newValue = value.includes(option)
+      ? value.filter(item => item !== option)
+      : [...value, option];
+    onChange(newValue);
+  };
+
+  const removeOption = (option) => {
+    onChange(value.filter(item => item !== option));
+  };
+
+  return (
+    <div className="space-y-2 relative" ref={dropdownRef}>
+      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        {label}
+      </label>
+      
+      {/* Selected tags display */}
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-600">
+          {value.map(option => (
+            <div 
+              key={option} 
+              className="flex items-center px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-full text-sm border border-red-200 dark:border-red-700"
+            >
+              <AlertCircle className="w-3 h-3 mr-1" />
+              {option.charAt(0).toUpperCase() + option.slice(1)}
+              <button
+                type="button"
+                onClick={() => removeOption(option)}
+                className="ml-2 focus:outline-none hover:text-red-600"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Dropdown trigger */}
+      <div 
+        className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white/50 dark:bg-zinc-800 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:outline-none transition cursor-pointer flex items-center justify-between"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className={value.length > 0 ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500"}>
+          {value.length > 0 ? `${value.length} allergen(s) selected` : placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {/* Dropdown menu - FIXED VERSION */}
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl">
+          {/* Scrollable options container */}
+          <div 
+            className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-transparent"
+            style={{
+              // Ensure scrolling works properly
+              overflowY: 'auto',
+              maxHeight: '12rem', // 192px
+            }}
+          >
+            <div className="p-2 space-y-1">
+              {options.map(option => (
+                <div
+                  key={option}
+                  className={`px-3 py-2 rounded-lg cursor-pointer flex items-center transition-colors ${
+                    value.includes(option) 
+                      ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' 
+                      : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                  }`}
+                  onClick={() => toggleOption(option)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={value.includes(option)}
+                    readOnly
+                    className="mr-3 h-4 w-4 rounded border-zinc-300 text-red-600 focus:ring-red-500"
+                  />
+                  <AlertCircle className="w-4 h-4 mr-2 text-red-500" />
+                  <span className="capitalize">{option}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Clear all button - outside scrollable area */}
+          {value.length > 0 && (
+            <div className="border-t border-zinc-200 dark:border-zinc-700 p-2 bg-white dark:bg-zinc-800 rounded-b-lg">
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Clear all allergens
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MultiSelectGrid({ label, options, selected, onChange, customLabels = {}, customIcons = {}, borderColor = "blue" }) {
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {options.map((option) => {
-          const active = selected.includes(option);
+          const isSelected = selected.includes(option);
+          const inputId = `${label.replace(/\s/g, '-')}-${option}-${Math.random().toString(36).slice(2, 9)}`;
           return (
-            <label
-              key={option}
-              className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                active
-                  ? `border-${borderColor}-500 bg-${borderColor}-50 dark:bg-${borderColor}-900/30 text-${borderColor}-700 dark:text-${borderColor}-300`
-                  : "border-zinc-200 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-              }`}
-            >
+            <div key={inputId} className="relative">
               <input
+                id={inputId}
                 type="checkbox"
-                checked={active}
-                onChange={() => onChange(option)}
-                className="sr-only"
+                checked={isSelected}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  console.log(`Checkbox ${option}: ${e.target.checked}`);
+                  onChange(option);
+                }}
+                className="absolute w-4 h-4 opacity-0"
+                style={{ zIndex: 10 }}
               />
-              {customIcons[option] && <span className="text-lg">{customIcons[option]}</span>}
-              <span className="font-medium capitalize text-sm">
-                {customLabels[option] || option}
-              </span>
-            </label>
+              <label
+                htmlFor={inputId}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                  isSelected
+                    ? `border-${borderColor}-500 bg-${borderColor}-50 dark:bg-${borderColor}-900/30 text-${borderColor}-700 dark:text-${borderColor}-300`
+                    : "border-zinc-200 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                }`}
+                style={{ pointerEvents: "auto", userSelect: "none" }}
+              >
+                {customIcons[option] && <span className="text-lg">{customIcons[option]}</span>}
+                <span className="font-medium capitalize text-sm">
+                  {customLabels[option] || option}
+                </span>
+              </label>
+            </div>
           );
         })}
       </div>

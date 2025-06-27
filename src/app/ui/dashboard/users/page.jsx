@@ -1,15 +1,20 @@
-"use client";
+"use client"
 
 import { useEffect, useState } from "react";
 import UserCard from "@/components/ui/userCard";
 import { Button } from "@/components/ui/button";
 import { User as UserIcon, Loader2, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import toast, { Toaster } from 'react-hot-toast';
+
 
 export default function UserList() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const router = useRouter();
+
 
   const fetchUsers = async (currentPage) => {
     try {
@@ -18,6 +23,19 @@ export default function UserList() {
       const res = await fetch(`/api/user/all?page=${currentPage}&limit=2`, {
         credentials: "include",
       });
+
+      if(res.status == 401){
+        console.log("Unauthorised User , Please Sign In first");
+        toast.error("You are not logged in. Redirecting to login...", {
+        duration: 4000,
+        });
+
+
+        setTimeout(() => {
+          router.push("/ui/admin/login");
+        } , 4000)
+        return ;
+      }
 
       if (!res.ok) throw new Error("Failed to fetch users");
 

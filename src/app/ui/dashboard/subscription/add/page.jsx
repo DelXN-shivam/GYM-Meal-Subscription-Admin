@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { CheckCircle, AlertCircle, Plus, Clock, Utensils, DollarSign, Calendar, Heart } from "lucide-react";
 import toast from 'react-hot-toast'
-import { date } from "zod";
 
 export default function AddSubscription() {
     const [formData, setFormData] = useState({
@@ -60,7 +59,7 @@ export default function AddSubscription() {
         const invalidMeals = mealTypesArray.filter((meal) => !allowedMealTypes.includes(meal))
 
         if(invalidMeals.length > 0){
-            errors.mealTypes("Please select valid meal types (Breakfast , Lunch , Dinner)")
+            errors.mealTypes = "Please select valid meal types (Breakfast, Lunch, Dinner)";
         }
     }
 
