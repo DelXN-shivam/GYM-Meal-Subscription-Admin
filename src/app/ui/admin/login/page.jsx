@@ -2,36 +2,38 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
+import axios from 'axios';
 export default function AdminLogin() {
     const [userId, setUserId] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const router = useRouter();
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
     const handleLogin = async (e) => {
         e.preventDefault();
 
         try {
-            const res = await fetch('/api/admin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include', // Send and receive cookies
-                body: JSON.stringify({ userId, password })
-            });
+            const res = await axios.post(
+                '/api/admin/login',
+                { userId, password }, 
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    withCredentials: true 
+                }
+            );
 
-            const data = await res.json();
-
-            if (res.ok) {
-                router.push('/ui/dashboard/home');
+            if (res.status === 200) {
+                router.push('/ui/dashboard');
             } else {
-                setError(data.message || 'Login failed');
+                setError(res.data.message || 'Login failed');
             }
         } catch (err) {
             console.error(err);
-            setError('Server error');
+            setError(err.response?.data?.message || 'Server error');
         }
     };
+
 
     return (
         <div className="flex items-center justify-center min-h-screen p-4">

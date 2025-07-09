@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import axios from "axios";
 import { useRouter } from "next/navigation";
 
 export default function ProductAdd() {
@@ -20,8 +21,9 @@ export default function ProductAdd() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const router = useRouter();
-  const [authorized, setAuthorized] = useState(null);
   const [authStatus, setAuthStatus] = useState("checking");
+  const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
   const [form, setForm] = useState({
     name: "",
     type: [],
@@ -38,33 +40,30 @@ export default function ProductAdd() {
   const dietaryOptions = ["veg", "non-veg", "vegan"];
   const measurementOptions = ["plate", "bowl", "piece", "pieces", "serving", "slice", "cup"];
 
+  // Create axios instance
+  const api = axios.create({
+    baseURL: BASE_URL,
+    withCredentials: true,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("/api/admin/check-auth", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (res.status === 401) {
-          setAuthStatus("unauthorized");
-          toast.error("You are not authorized. Redirecting to login...");
-          setTimeout(() => router.push("/ui/admin/login"), 3000);
-          return;
-        }
-
-        const data = await res.json();
+        const { data } = await axios.get("/api/admin/check-auth");
+        
         if (data.authorized) {
           setAuthStatus("authorized");
-          setAuthorized(true);
         } else {
-          setAuthStatus("unauthorized");
           throw new Error("Unauthorized");
         }
       } catch (err) {
         console.error("Authorization failed:", err);
         setAuthStatus("unauthorized");
-        router.push("/ui/admin/login");
+        toast.error("You are not authorized. Redirecting to login...");
+        setTimeout(() => router.push("/ui/admin/login"), 3000);
       }
     };
 
@@ -106,50 +105,13 @@ export default function ProductAdd() {
       setError("");
       setSuccess(false);
 
-      console.log("Submitting form data:", JSON.stringify(form, null, 2));
-      console.log("Allergies specifically:", form.allergies);
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const res = await fetch("/api/product/add", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Uncomment and add token if required
-          // "Authorization": `Bearer ${localStorage.getItem('token')}`
-        },
-        credentials: "include",
-        body: JSON.stringify(form),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (res.status === 401) {
-        toast.error("You are not authorized. Redirecting to login...", {
-          duration: 4000,
-        });
-        setTimeout(() => router.push("/ui/admin/login"), 3000);
-        return;
-      }
-
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await res.text();
-        throw new Error(text || "Invalid response from server");
-      }
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || `HTTP error! Status: ${res.status}`);
-      }
+      const { data } = await api.post("/api/v1/product/add", form);
 
       setProduct(data.product);
       setSuccess(true);
       toast.success("Product added successfully!");
 
+      // Reset form
       setForm({
         name: "",
         type: [],
@@ -160,14 +122,22 @@ export default function ProductAdd() {
         dietaryPreference: [],
         allergies: [],
       });
+
+      // Redirect after success
+      setTimeout(() => router.push("/ui/dashboard/products"), 1500);
     } catch (err) {
       console.error("Submission error:", err);
-      if (err.name === "AbortError") {
-        setError("Request timed out. Please try again.");
-        toast.error("Request timed out. Please try again.");
+      if (err.response) {
+        if (err.response.status === 401) {
+          toast.error("You are not authorized. Redirecting to login...");
+          setTimeout(() => router.push("/ui/admin/login"), 3000);
+        } else {
+          setError(err.response.data?.message || "Update failed");
+          toast.error(err.response.data?.message || "Server Error - Please try again");
+        }
       } else {
-        setError(err.message);
-        toast.error(err.message || "Server Error - Please try again");
+        setError(err.message || "Something went wrong");
+        toast.error(err.message || "Request failed. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -176,25 +146,17 @@ export default function ProductAdd() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log(`handleChange - ${name}:`, value); // Debug log
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const toggleArrayValue = (key, value) => {
-    console.log(`Toggling ${key}: ${value}`);
     setForm((prev) => {
       const currentArray = prev[key] || [];
       const newArray = currentArray.includes(value)
         ? currentArray.filter((v) => v !== value)
         : [...currentArray, value];
-      console.log(`Updated ${key}:`, newArray);
       return { ...prev, [key]: newArray };
     });
-  };
-
-  const handleAllergyChange = (newAllergies) => {
-    console.log("handleAllergyChange - New allergies:", newAllergies);
-    setForm((prev) => ({ ...prev, allergies: newAllergies }));
   };
 
   if (authStatus === "checking") {
@@ -384,9 +346,8 @@ function TextInput({ label, name, value, onChange, placeholder = "", required = 
           onChange={onChange}
           required={required}
           placeholder={placeholder}
-          className={`w-full ${
-            icon ? "pl-10 pr-4" : "px-4"
-          } py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white/50 dark:bg-zinc-800 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:outline-none transition`}
+          className={`w-full ${icon ? "pl-10 pr-4" : "px-4"
+            } py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white/50 dark:bg-zinc-800 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:outline-none transition`}
         />
       </div>
     </div>
@@ -447,13 +408,13 @@ function EnhancedMultiSelectDropdown({ label, value = [], onChange, options, pla
       <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
         {label}
       </label>
-      
+
       {/* Selected tags display */}
       {value.length > 0 && (
         <div className="flex flex-wrap gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-600">
           {value.map(option => (
-            <div 
-              key={option} 
+            <div
+              key={option}
               className="flex items-center px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-full text-sm border border-red-200 dark:border-red-700"
             >
               <AlertCircle className="w-3 h-3 mr-1" />
@@ -471,7 +432,7 @@ function EnhancedMultiSelectDropdown({ label, value = [], onChange, options, pla
       )}
 
       {/* Dropdown trigger */}
-      <div 
+      <div
         className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white/50 dark:bg-zinc-800 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:outline-none transition cursor-pointer flex items-center justify-between"
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -485,7 +446,7 @@ function EnhancedMultiSelectDropdown({ label, value = [], onChange, options, pla
       {isOpen && (
         <div className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl">
           {/* Scrollable options container */}
-          <div 
+          <div
             className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-transparent"
             style={{
               // Ensure scrolling works properly
@@ -497,11 +458,10 @@ function EnhancedMultiSelectDropdown({ label, value = [], onChange, options, pla
               {options.map(option => (
                 <div
                   key={option}
-                  className={`px-3 py-2 rounded-lg cursor-pointer flex items-center transition-colors ${
-                    value.includes(option) 
-                      ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' 
-                      : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                  }`}
+                  className={`px-3 py-2 rounded-lg cursor-pointer flex items-center transition-colors ${value.includes(option)
+                    ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                    : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                    }`}
                   onClick={() => toggleOption(option)}
                 >
                   <input
@@ -516,7 +476,7 @@ function EnhancedMultiSelectDropdown({ label, value = [], onChange, options, pla
               ))}
             </div>
           </div>
-          
+
           {/* Clear all button - outside scrollable area */}
           {value.length > 0 && (
             <div className="border-t border-zinc-200 dark:border-zinc-700 p-2 bg-white dark:bg-zinc-800 rounded-b-lg">
@@ -560,11 +520,10 @@ function MultiSelectGrid({ label, options, selected, onChange, customLabels = {}
               />
               <label
                 htmlFor={inputId}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                  isSelected
-                    ? `border-${borderColor}-500 bg-${borderColor}-50 dark:bg-${borderColor}-900/30 text-${borderColor}-700 dark:text-${borderColor}-300`
-                    : "border-zinc-200 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                }`}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${isSelected
+                  ? `border-${borderColor}-500 bg-${borderColor}-50 dark:bg-${borderColor}-900/30 text-${borderColor}-700 dark:text-${borderColor}-300`
+                  : "border-zinc-200 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  }`}
                 style={{ pointerEvents: "auto", userSelect: "none" }}
               >
                 {customIcons[option] && <span className="text-lg">{customIcons[option]}</span>}

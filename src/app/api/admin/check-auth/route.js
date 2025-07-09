@@ -2,7 +2,7 @@
 import { authenticate } from "@/lib/auth"; 
 
 export async function GET(req) {
-  const isAuthenticated = await authenticate(req);
+  const isAuthenticated = authenticate(req);
 
   if (!isAuthenticated) {
     return new Response(JSON.stringify({ authorized: false }), { status: 401 });

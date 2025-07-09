@@ -5,11 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import ProductForm from "@/components/ui/productForm";
 import { Button } from "@/components/ui/button";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 export default function EditProductPage() {
   const { id } = useParams();
   const router = useRouter();
-
+  const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
   const [initialData, setInitialData] = useState(null);
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,22 +20,38 @@ export default function EditProductPage() {
   const [success, setSuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
+  // Create axios instance with default config
+  const api = axios.create({
+    baseURL: BASE_URL,
+    withCredentials: true,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/product/getOne/${id}`, { credentials: "include" });
-
-        if (!res.ok) {
-          throw new Error(res.status === 404 ? "Product not found" : "Failed to fetch product");
-        }
-
-        const data = await res.json();
+        const { data } = await axios.get(`${BASE_URL}/api/v1/product/get/${id}`);
+        
         setInitialData(data.product);
         setFormData(data.product);
       } catch (err) {
         console.error(err);
-        setError(err.message || "Failed to load product");
+        if (err.response) {
+          if (err.response.status === 404) {
+            setError("Product not found");
+          } else if (err.response.status === 401) {
+            toast.error("Unauthorized. Redirecting to login...");
+            setTimeout(() => router.push("/ui/admin/login"), 2000);
+            return;
+          } else {
+            setError(err.response.data?.message || "Failed to fetch product");
+          }
+        } else {
+          setError(err.message || "Failed to load product");
+        }
       } finally {
         setLoading(false);
       }
@@ -75,28 +93,27 @@ export default function EditProductPage() {
       }
 
       if (Object.keys(changedFields).length === 0) {
-        setSuccess(true);
+        toast.success("No changes detected");
         setTimeout(() => router.push("/ui/dashboard/products"), 1500);
         return;
       }
 
-      const res = await fetch(`/api/product/edit/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(changedFields),
-      });
+      const { data } = await axios.patch(`${BASE_URL}/api/v1/product/update/${id}`, changedFields);
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Update failed");
-      }
-
+      toast.success(data.message || "Product updated successfully");
       setSuccess(true);
       setTimeout(() => router.push("/ui/dashboard/products"), 1500);
     } catch (err) {
       console.error(err);
-      setError(err.message || "Something went wrong");
+      if (err.response) {
+        if (err.response.status === 400 && err.response.data?.errors) {
+          setValidationErrors(err.response.data.errors);
+        } else {
+          setError(err.response.data?.message || "Update failed");
+        }
+      } else {
+        setError(err.message || "Something went wrong");
+      }
     } finally {
       setSubmitting(false);
     }
