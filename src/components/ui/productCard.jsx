@@ -13,11 +13,12 @@ export default function CompactProductCard({ product, onDelete }) {
         const colors = {
             vegan: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
             veg: "bg-lime-100 text-lime-700 dark:bg-lime-900/30 dark:text-lime-400",
+            non_veg: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
             keto: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
             paleo: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
             gluten_free: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
         };
-        return colors[pref?.toLowerCase()] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+        return colors[pref?.toLowerCase().replace("-", "_")] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
     };
 
     const getMealTypeColor = (type) => {
@@ -58,8 +59,10 @@ export default function CompactProductCard({ product, onDelete }) {
                 <CardContent className="pt-0">
                     {/* Basic info */}
                     <div className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400">
-                        <span>Qty: {product.quantity}</span>
-                        <span>{product.type.length} meal types</span>
+                        <div>
+                            <span className="text-blue-800 dark:text-blue-200">Qty: {product.quantity}</span>
+                            <span className=" text-blue-800 dark:text-blue-200"> {product.measurement}</span>
+                        </div>
                     </div>
 
                     {/* Primary dietary preference */}

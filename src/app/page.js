@@ -22,6 +22,7 @@ export default function Home() {
         const data = await res.json();
         if (data.authorized) {
           setAuthStatus("authorized");
+          router.push('/ui/dashboard')
         } else {
           throw new Error("Unauthorized");
         }
@@ -59,7 +60,7 @@ export default function Home() {
 
   return (
     <div className="font-[family-name:var(--font-geist-sans)]">
-      Home
+      Redirecting to Dashboard
     </div>
   );
 }

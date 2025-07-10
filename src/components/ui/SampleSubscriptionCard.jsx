@@ -125,13 +125,6 @@ export default function SampleSubscriptionCard({ subscription }) {
                 <p className="text-lg font-semibold text-primary">₹{dailyPrice}</p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-2 mt-3">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="text-sm text-slate-600 dark:text-slate-400">
-                Save ₹{Math.floor(subscription.price * 0.15)} compared to daily orders
-              </span>
-            </div>
           </div>
 
           {/* Meal types */}
@@ -205,10 +198,7 @@ export default function SampleSubscriptionCard({ subscription }) {
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
               </span>
             </Button>
-            
-            <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Cancel anytime • No hidden fees
-            </p>
+          
           </div>
         </CardContent>
       </div>

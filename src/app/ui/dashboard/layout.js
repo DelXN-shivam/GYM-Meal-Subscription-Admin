@@ -14,9 +14,7 @@ const navItems = [
     label: 'Dashboard',
     icon: <BarChart3 size={20} />,
     links: [
-      { href: '/dashboard/overview', label: 'Overview' },
-      { href: '/dashboard/analytics', label: 'Analytics' },
-      { href: '/dashboard/reports', label: 'Reports' }
+      { href: '/ui/dashboard', label: 'Home' }
     ]
   },
   {
@@ -81,9 +79,9 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className={`${darkMode ? 'dark' : ''}`}>
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      <div className="sticky top-0 z-50 shadow-sm">
         {/* Header - Keep your original header */}
-        <header className="w-full h-16 bg-white/80 backdrop-blur-lg dark:bg-gray-900/80 border-b border-slate-200/60 dark:border-gray-700/60 flex items-center justify-between px-6 shadow-lg sticky top-0 z-30">
+        <header className="w-full h-16 bg-white backdrop-blur-xl  dark:border-gray-800 flex items-center justify-between px-6 shadow-lg sticky top-0 z-30 dark:backdrop-blur-xl dark:bg-black">
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -96,17 +94,6 @@ export default function DashboardLayout({ children }) {
                 GYM-Meal-Admin
               </h1>
               <p className="text-xs text-slate-500 dark:text-gray-400">Management Portal</p>
-            </div>
-          </div>
-
-          <div className="absolute left-1/2 transform -translate-x-1/2 w-80 max-w-sm">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search users, meals, equipment..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-gray-600 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-200 placeholder:text-slate-400"
-              />
             </div>
           </div>
 
@@ -154,7 +141,7 @@ export default function DashboardLayout({ children }) {
 
         <div className="flex flex-1">
           {/* Desktop Sidebar - Keep your original sidebar */}
-          <aside className={`fixed z-20 h-[calc(100vh-4rem)] mt-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-slate-200/60 dark:border-gray-700/60 shadow-xl transition-all duration-300 p-4 flex flex-col ${isExpanded ? "w-72" : "w-20"} hidden md:flex`}>
+          <aside className={`fixed z-20 h-[calc(100vh-4rem)] mt-0 bg-white/70 dark:bg-black border-r border-slate-200/60 dark:border-gray-800 shadow-xl dark:h-full transition-all duration-300 p-4 flex flex-col ${isExpanded ? "w-72" : "w-20"} hidden md:flex`}>
             <div className="flex items-center justify-between mb-8">
               <div />
               <button
